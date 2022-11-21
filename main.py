@@ -25,7 +25,7 @@ def login():
     global logedin_name
     screen_header()
     username = input("""Username: """)
-    if username != "demo":    
+    if username != "":    
         password = getpass("""Password: """)
         query = 'SELECT * FROM login WHERE Username = ? AND Password = ?'
         c.execute(query, (username, password))
@@ -58,7 +58,7 @@ def show_menu():
         print(f"          {i}.     {item[2]}    {item[0]}{' '*(30-len(item[0]))}{item[1]}")
         i+=1
     input("""
-          Press enter to continue""")
+          Press enter to continue...""")
     
 def main_menu():
     while True:
@@ -81,20 +81,15 @@ def main_menu():
         elif menu_choice == '2':
             show_menu()
         elif menu_choice == '3':
-            # add_item()
-            pass
+            add_item()
         elif menu_choice == '4':
-            # edit_item()
-            pass
+            edit_item()
         elif menu_choice == '5':
-            # remove_item()
-            pass
+            remove_item()
         elif menu_choice == '6':
-            # add_user()
-            pass
+            add_user()
         elif menu_choice == '7':
-            # remove_user()
-            pass
+            remove_user()
         elif menu_choice == '8':
             break
         else:
@@ -102,6 +97,108 @@ def main_menu():
             time.sleep(2)
             continue
      
+def add_item():
+    screen_header()
+    print("\t\tAdd New Item to Menu", end='\n'*2)
+    item_name = input("\tItem Name: ")
+    item_price = input("\tItem Price: ")
+
+    # get last item id from database
+    c.execute("SELECT item_id FROM menu ORDER BY item_id DESC LIMIT 1")
+    last_item_id = c.fetchone()[0]
+    # add new item to database
+    c.execute("INSERT INTO menu VALUES (?, ?, ?)", (item_name, item_price, last_item_id+1))
+    conn.commit()
+    print("""
+        Item added successfully""")  
+    time.sleep(2)
+
+
+def edit_item():
+    # show menu and ask item id and prompt to edit item
+    while True:
+        show_menu()
+        item_id = input("Enter item id to edit: ")
+        if item_id != "":
+            # load item from database
+            c.execute("SELECT * FROM menu WHERE item_id = ?", (item_id,))
+            item = c.fetchone()
+            if item != None:
+                # prompt to edit item
+                screen_header()
+                print(f"""
+                        Edit Item
+                    """)
+                print(f"""
+                    Item Name: {item[0]}
+                    Item Price: {item[1]}
+                    """)
+                new_item_name = input("Enter new item name: ")
+                new_item_price = input("Enter new item price: ")
+                if new_item_name != "" and new_item_price != "":
+                    # update item in database
+                    c.execute("UPDATE menu SET item_name = ?, item_price = ? WHERE item_id = ?", (new_item_name, new_item_price, item_id))
+                    conn.commit()
+                    print("Item updated successfully")
+                    time.sleep(2)
+                    break
+                else:
+                    break
+            else:
+                print("Invalid item id")
+                time.sleep(2)
+                continue
+        else:
+            break
+
+def remove_item():
+    # show menu and ask item id to remove
+    while True:
+        show_menu()
+        item_id = input("Enter item id to remove: ")
+        if item_id != "":
+            # load item from database
+            c.execute("SELECT * FROM menu WHERE item_id = ?", (item_id,))
+            item = c.fetchone()
+            if item != None:
+                # remove item from database
+                c.execute("DELETE FROM menu WHERE item_id = ?", (item_id,))
+                conn.commit()
+                print("Item removed successfully")
+                time.sleep(2)
+                break
+            else:
+                print("Invalid item id")
+                time.sleep(2)
+                continue
+        else:
+            break
+
+
+def add_user():
+    # prompt to ask for username and password and add user to database
+    screen_header()
+    print("\t\tAdd New User", end='\n'*2)
+    name = input("\tName: ")
+    username = input("\tUsername: ")
+    password = getpass("\tPassword: ")
+    if username != "" and password != "":
+        c.execute("INSERT INTO login VALUES (?, ?, ?)", (name, username, password))
+        conn.commit()
+        print("\tUser added successfully")
+        time.sleep(2)
+
+def remove_user():
+    # ask for username and remove user from database
+    screen_header()
+    print("\t\tRemove User", end='\n'*2)
+    username = input("\tUsername: ")
+    if username != "":
+        c.execute("DELETE FROM login WHERE username = ?", (username,))
+        conn.commit()
+        print("\tUser removed successfully")
+        time.sleep(2)
+
 def invoice_header():
     global customer_name
     # clear screen  
@@ -197,23 +294,24 @@ Invalid order id: {order_id}
             return False
     temp_order_details = {}
     for item in menu:
-        
-        # if item is already in order details then add quantity
-        if int(item[2]) in temp_order_details:
-            print("yess, already in order details")
-            print(temp_order_details)
-            temp_order_details[item[2]]["qty"] += 1
-        else:
-            # if item is not in order details then add item
-            if str(item[2]) in temp_order_ids:
-                temp_order_details[item[2]] = {"name": item[0], "price": item[1], "qty": 1}
-            print(temp_order_details)
+        for order_id in temp_order_ids:    
+            # if item is already in order details then add quantity
+            if item[2] in temp_order_details:
+                print("yess, already in order details")
+                print(temp_order_details)
+                temp_order_details[item[2]]["qty"] += 1
+            else:
+                # if item is not in order details then add item
+                if str(item[2]) in temp_order_ids:
+                    temp_order_details[item[2]] = {"name": item[0], "price": item[1], "qty": 1}
+                print(temp_order_details)
     print(temp_order_details)
-    print(type(item[2]))
-    print(type(temp_order_details[101]))
+    # print(type(item[2]))
+    # print(type(temp_order_details[101]))
     # if all order ids are valid then return order details
     time.sleep(10)
     return temp_order_details
+
 
 
 while True:
