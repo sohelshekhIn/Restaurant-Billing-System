@@ -256,9 +256,65 @@ def order_page():
         order_details = take_order()
         if order_details != False:
             invoice_header()
+            sr = 1
+            total = 0
             print(order_details)
-            input("5")
+            for j in range(len(order_details)):
+                # get key from dictionary using index
+                i = list(order_details.keys())[0]
+                print(i)
+                print(order_details[i]["name"])
+                print(f"""
+{sr}.  {i}-{order_details[i]["name"]}{' '*(10-(len(str(int(i)+1))+len(order_details[i]["name"])))}\
+                {order_details[i]["qty"]}{' '*(2-len(str(order_details[i]["qty"])))}\
+                    {order_details[i]["item_price"]}{' '*(2-len(str(order_details[i]["item_price"])))}\
+                        {order_details[i]["total_price"]}""")
+                sr +=1
+                total += order_details[i]["total_price"]
+            print(f"""
+{'-'*55}
+Total{' '*(40-len(str(total)))}{total}
+            """)
+
+            
+            # also do GST calculations 
+            gst = total * 0.05
+            print(f"""
+GST{' '*(40-len(str(gst)))}{gst}
+""")
+            print(f"""
+{'-'*55}
+Grand Total{' '*(40-len(str(total+gst)))}{total+gst}
+""")
+            # ask for recieved amount and calculate change and if change is negative then ask for more money and c is pressed then cancel order
+            while True:
+                rec_amount = input("""
+Recieved Amount: """)
+                if rec_amount != "":
+                    rec_amount = int(rec_amount)
+                    if rec_amount >= total+gst:
+                        change = rec_amount - (total+gst)
+                        print(f"""
+Change{' '*(40-len(str(change)))}{change}
+""")
+                        # save order details in database
+                        # c.execute("INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?, ?)", (customer_name, logedin_name, order_details[-1], gst, order_details[-1]+gst, rec_amount, change))
+                        input("""
+Press enter to continue""")
+                        break
+                    elif rec_amount == 0:
+                        break
+                    else:
+                        print("""
+Insufficient amount""")
+                        time.sleep(2)
+                        continue
+                else:
+                    break
             break
+        else:
+            break
+            
     
 
 def take_order():
@@ -272,6 +328,7 @@ Sr.  Item Id    Item Name                     Price (Rs)
     # load menu from database
     c.execute("SELECT * FROM menu")
     menu = c.fetchall()
+    temp_order_details = {}
     # generate list of item ids
     item_ids = []
     i = 1
@@ -284,33 +341,36 @@ Sr.  Item Id    Item Name                     Price (Rs)
 Enter order id to add items: """)
     # make list of order ids from user input comma seperated
     temp_order_ids = ask_for_order.split(',')
-    # check if order ids are valid
+     
     for order_id in temp_order_ids:
-        if int(order_id) not in item_ids:
-            print(f"""
-Invalid order id: {order_id}
+        if "x" in order_id:
+            qty_details = order_id.split('x')
+            if qty_details[1].isdigit() == False:
+                print(f"""
+Invalid quantity: {qty_details[1]}
 """)
-            time.sleep(2)
-            return False
-    temp_order_details = {}
-    for item in menu:
-        for order_id in temp_order_ids:    
-            # if item is already in order details then add quantity
-            if item[2] in temp_order_details:
-                print("yess, already in order details")
-                print(temp_order_details)
-                temp_order_details[item[2]]["qty"] += 1
-            else:
-                # if item is not in order details then add item
-                if str(item[2]) in temp_order_ids:
-                    temp_order_details[item[2]] = {"name": item[0], "price": item[1], "qty": 1}
-                print(temp_order_details)
-    print(temp_order_details)
-    # print(type(item[2]))
-    # print(type(temp_order_details[101]))
-    # if all order ids are valid then return order details
-    time.sleep(10)
-    return temp_order_details
+                time.sleep(2)
+                return False
+        else:
+            qty_details = [order_id, 1]   
+        
+        for i in temp_order_ids:
+                if int(qty_details[0]) not in item_ids:
+                    print(f"""
+Invalid order id: {qty_details[0]}
+""")
+                    time.sleep(2)
+                    return False        
+        
+        print(qty_details)
+        for i in range(len(menu)):
+                if int(qty_details[0]) == menu[i][2]:
+                    temp_order_details[qty_details[0]] = {"name": menu[i][0], "item_price": menu[i][1], "total_price": menu[i][1]*int(qty_details[1]), "qty": int(qty_details[1])}   
+        print(temp_order_details)
+        # error second order is not showing
+        # to be continued
+        time.sleep(10)
+        return temp_order_details
 
 
 
