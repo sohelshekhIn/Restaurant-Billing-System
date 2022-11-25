@@ -258,16 +258,12 @@ def order_page():
             invoice_header()
             sr = 1
             total = 0
-            print(order_details)
-            for j in range(len(order_details)):
-                # get key from dictionary using index
-                i = list(order_details.keys())[0]
-                print(i)
-                print(order_details[i]["name"])
+            for i in order_details:
+                print(' '*(10-(len(str(int(i)+3))+len(order_details[i]["name"]))))
                 print(f"""
-{sr}.  {i}-{order_details[i]["name"]}{' '*(10-(len(str(int(i)+1))+len(order_details[i]["name"])))}\
-                {order_details[i]["qty"]}{' '*(2-len(str(order_details[i]["qty"])))}\
-                    {order_details[i]["item_price"]}{' '*(2-len(str(order_details[i]["item_price"])))}\
+{sr}. {i} - {order_details[i]["name"]}{' '*(10-len(order_details[i]["name"]))}\
+                {order_details[i]["qty"]}{' '*(len(str(order_details[i]["qty"])))}\
+                    {order_details[i]["item_price"]}{' '*(len(str(order_details[i]["item_price"])))}\
                         {order_details[i]["total_price"]}""")
                 sr +=1
                 total += order_details[i]["total_price"]
@@ -341,7 +337,7 @@ Sr.  Item Id    Item Name                     Price (Rs)
 Enter order id to add items: """)
     # make list of order ids from user input comma seperated
     temp_order_ids = ask_for_order.split(',')
-     
+
     for order_id in temp_order_ids:
         if "x" in order_id:
             qty_details = order_id.split('x')
@@ -362,15 +358,11 @@ Invalid order id: {qty_details[0]}
                     time.sleep(2)
                     return False        
         
-        print(qty_details)
         for i in range(len(menu)):
                 if int(qty_details[0]) == menu[i][2]:
                     temp_order_details[qty_details[0]] = {"name": menu[i][0], "item_price": menu[i][1], "total_price": menu[i][1]*int(qty_details[1]), "qty": int(qty_details[1])}   
-        print(temp_order_details)
-        # error second order is not showing
-        # to be continued
-        time.sleep(10)
-        return temp_order_details
+        
+    return temp_order_details
 
 
 
