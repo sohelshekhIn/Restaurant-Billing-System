@@ -18,12 +18,14 @@ c = conn.cursor()
 # c.execute("INSERT INTO login VALUES ('Sohel Shekh', 'sohel', 'shekh')")
 
 # modify data in table
-c.execute("UPDATE menu SET item_id = 101 WHERE item_name = 'Aloo Tikki Burger'")
-c.execute("UPDATE menu SET item_id = 102 WHERE item_name = 'Paneer Tikka Burger'")
-c.execute("UPDATE menu SET item_id = 103 WHERE item_name = 'Veg Burger'")
-c.execute("UPDATE menu SET item_id = 104 WHERE item_name = 'Chicken Tikka Burger'")
+# c.execute("UPDATE menu SET item_id = 101 WHERE item_name = 'Aloo Tikki Burger'")
+# c.execute("UPDATE menu SET item_id = 102 WHERE item_name = 'Paneer Tikka Burger'")
+# c.execute("UPDATE menu SET item_id = 103 WHERE item_name = 'Veg Burger'")
+# c.execute("UPDATE menu SET item_id = 104 WHERE item_name = 'Chicken Tikka Burger'")
 # query = "CREATE TABLE login(Name VARCHAR, Username VARCHAR UNIQUE, Password VARCHAR)"
 # conn.execute(query)
+# create new table for orders
+c.execute("CREATE TABLE IF NOT EXISTS orders (date text,cashier text,cust_name text,order_id integer,item_id integer,item_name text,total real)")
 
 
 

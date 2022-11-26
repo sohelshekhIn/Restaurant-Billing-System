@@ -8,6 +8,7 @@ c = conn.cursor()
 # Global Variables
 logedin_name = False
 customer_name = ""
+order_data = []
 order_details = {}
 
 
@@ -94,7 +95,7 @@ def main_menu():
             break
         else:
             print("Invalid choice")
-            time.sleep(2)
+            time.sleep(1)
             continue
      
 def add_item():
@@ -111,7 +112,7 @@ def add_item():
     conn.commit()
     print("""
         Item added successfully""")  
-    time.sleep(2)
+    time.sleep(1)
 
 
 def edit_item():
@@ -140,13 +141,13 @@ def edit_item():
                     c.execute("UPDATE menu SET item_name = ?, item_price = ? WHERE item_id = ?", (new_item_name, new_item_price, item_id))
                     conn.commit()
                     print("Item updated successfully")
-                    time.sleep(2)
+                    time.sleep(1)
                     break
                 else:
                     break
             else:
                 print("Invalid item id")
-                time.sleep(2)
+                time.sleep(1)
                 continue
         else:
             break
@@ -165,11 +166,11 @@ def remove_item():
                 c.execute("DELETE FROM menu WHERE item_id = ?", (item_id,))
                 conn.commit()
                 print("Item removed successfully")
-                time.sleep(2)
+                time.sleep(1)
                 break
             else:
                 print("Invalid item id")
-                time.sleep(2)
+                time.sleep(1)
                 continue
         else:
             break
@@ -186,7 +187,7 @@ def add_user():
         c.execute("INSERT INTO login VALUES (?, ?, ?)", (name, username, password))
         conn.commit()
         print("\tUser added successfully")
-        time.sleep(2)
+        time.sleep(1)
 
 def remove_user():
     # ask for username and remove user from database
@@ -197,10 +198,10 @@ def remove_user():
         c.execute("DELETE FROM login WHERE username = ?", (username,))
         conn.commit()
         print("\tUser removed successfully")
-        time.sleep(2)
+        time.sleep(1)
 
 def invoice_header():
-    global customer_name
+    global customer_name, order_data
     # clear screen  
     os.system('cls' if os.name == 'nt' else 'clear')
     screen_header()
@@ -208,12 +209,11 @@ def invoice_header():
     current_time = time.strftime("%d/%m/%Y %H:%M:%S")
     # generate invoice number with current time and random number
     invoice_number = str(time.time()).replace('.', '')[5:9] + str(random.randint(1000, 9999))
+    order_data = [current_time, invoice_number]
     print(f"""
----------------------- Tax Invoice ----------------------
-    
+{24 * '-'} Tax Invoice {24 * '-'}\n 
 Invoice No: {invoice_number}\t\t\tCashier:  {logedin_name}           
-Date: {current_time}\t\tCustomer: {customer_name}
-
+Date: {current_time}\t\tCustomer: {customer_name}\t
           """)   
 
 def show_order(order_ids):
@@ -227,8 +227,6 @@ Sr.  Item Id    Item Name                 Qty.        Price (Rs)""")
     menu = c.fetchall()
     i = 1
     total = 0
-    # if same item is ordered multiple times then add quantity
-    
     for item in menu:
         print(f"  {i}.     {item[2]}    {item[0]}{' '*(20-len(item[0]))}   {item[1]}")
         total += item[1]
@@ -244,7 +242,7 @@ Press enter to continue""")
                 
 
 def order_page():
-    global customer_name, order_details
+    global customer_name, order_details, order_data
     screen_header()
     print(f"""
                     Tax Invoice   
@@ -254,47 +252,54 @@ def order_page():
     while True:
         invoice_header()
         order_details = take_order()
+        item_names = []
+        item_ids = []
         if order_details != False:
             invoice_header()
             sr = 1
             total = 0
+            print("-"*61)
+            print("Sr.\t Item Name\t\t      Qty.\tPr.  Ttl.\n")
             for i in order_details:
-                print(' '*(10-(len(str(int(i)+3))+len(order_details[i]["name"]))))
-                print(f"""
-{sr}. {i} - {order_details[i]["name"]}{' '*(10-len(order_details[i]["name"]))}\
-                {order_details[i]["qty"]}{' '*(len(str(order_details[i]["qty"])))}\
-                    {order_details[i]["item_price"]}{' '*(len(str(order_details[i]["item_price"])))}\
-                        {order_details[i]["total_price"]}""")
+                print(f"{sr}. {i} - {order_details[i]['name']}{' '*(30-len(order_details[i]['name']))}{order_details[i]['qty']}{' '*(7-len(str(order_details[i]['qty'])))}{order_details[i]['item_price']}{' '*(7-len(str(order_details[i]['item_price'])))}{order_details[i]['total_price']}")
                 sr +=1
                 total += order_details[i]["total_price"]
+                item_names.append(order_details[i]["name"])
+                item_ids.append(i)
             print(f"""
-{'-'*55}
-Total{' '*(40-len(str(total)))}{total}
-            """)
+                  
+{'-'*61}
+{' '*40}Total\t{total}""")
 
-            
-            # also do GST calculations 
             gst = total * 0.05
+            # restrict gst to 2 decimal places
+            gst = float("{:.2f}".format(gst))
+            grand_total = round(total + gst)
+            print(f"{' '*42}GST\t{gst}")
             print(f"""
-GST{' '*(40-len(str(gst)))}{gst}
-""")
-            print(f"""
-{'-'*55}
-Grand Total{' '*(40-len(str(total+gst)))}{total+gst}
+{'-'*61}
+{' '*35}Grand Total\t{grand_total}
 """)
             # ask for recieved amount and calculate change and if change is negative then ask for more money and c is pressed then cancel order
             while True:
-                rec_amount = input("""
-Recieved Amount: """)
+                rec_amount = input(f"{' '*31}Recieved Amount\t")
                 if rec_amount != "":
                     rec_amount = int(rec_amount)
-                    if rec_amount >= total+gst:
-                        change = rec_amount - (total+gst)
-                        print(f"""
-Change{' '*(40-len(str(change)))}{change}
-""")
+                    if rec_amount >= grand_total:
+                        change = rec_amount - grand_total
+                        # restrict change to 2 decimal places
+                        change = float("{:.2f}".format(change))
+                        print(f"{' '*39}Change\t{change}")
+                        
+                        
                         # save order details in database
-                        # c.execute("INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?, ?)", (customer_name, logedin_name, order_details[-1], gst, order_details[-1]+gst, rec_amount, change))
+                        c.execute("INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?, ?)", (order_data[0], logedin_name, customer_name,order_data[1], ', '.join(item_ids), ', '.join(item_names), grand_total))
+                        conn.commit()
+                        print(f"""
+{'-'*61}
+{' '*35}Order Saved Successfully
+""")
+                        
                         input("""
 Press enter to continue""")
                         break
@@ -303,13 +308,13 @@ Press enter to continue""")
                     else:
                         print("""
 Insufficient amount""")
-                        time.sleep(2)
+                        time.sleep(1)
                         continue
                 else:
                     break
             break
         else:
-            break
+            continue
             
     
 
@@ -339,29 +344,43 @@ Enter order id to add items: """)
     temp_order_ids = ask_for_order.split(',')
 
     for order_id in temp_order_ids:
-        if "x" in order_id:
-            qty_details = order_id.split('x')
-            if qty_details[1].isdigit() == False:
-                print(f"""
-Invalid quantity: {qty_details[1]}
-""")
-                time.sleep(2)
-                return False
-        else:
-            qty_details = [order_id, 1]   
-        
-        for i in temp_order_ids:
-                if int(qty_details[0]) not in item_ids:
+        try:
+            if "x" in order_id or "X" in order_id or "*" in order_id:
+                qty_details = order_id.split('x')
+                if len(qty_details) == 1:
+                    qty_details = order_id.split('X')
+                    if len(qty_details) == 1:
+                        qty_details = order_id.split('*')
+
+                # if there is spaces in item id then remove them
+                if qty_details[1].isdigit() == False:
                     print(f"""
-Invalid order id: {qty_details[0]}
-""")
-                    time.sleep(2)
-                    return False        
-        
-        for i in range(len(menu)):
-                if int(qty_details[0]) == menu[i][2]:
-                    temp_order_details[qty_details[0]] = {"name": menu[i][0], "item_price": menu[i][1], "total_price": menu[i][1]*int(qty_details[1]), "qty": int(qty_details[1])}   
-        
+    Invalid quantity: {qty_details[1]}
+    """)
+                    time.sleep(1)
+                    return False
+            else:
+                qty_details = [order_id, 1] 
+                
+            
+            qty_details[0] = qty_details[0].replace(' ', '')
+            for i in temp_order_ids:
+
+                    if int(qty_details[0]) not in item_ids:
+                        print(f"""
+    Order not in menu: {qty_details[0]}
+    """)
+                        time.sleep(1)
+                        return False
+            for i in range(len(menu)):
+                    if int(qty_details[0]) == menu[i][2]:
+                        temp_order_details[qty_details[0]] = {"name": menu[i][0], "item_price": menu[i][1], "total_price": menu[i][1]*int(qty_details[1]), "qty": int(qty_details[1])}   
+        except ValueError:
+            print(f"""
+    Invalid order id: {qty_details[0]}
+    """)
+            time.sleep(1)
+            return False
     return temp_order_details
 
 
@@ -398,7 +417,7 @@ while True:
     elif welcome_screen_cmd == "4":
         # exit the program
         print("Exiting...")
-        time.sleep(2)
+        time.sleep(1)
         os._exit(0)
     else:
         pass
