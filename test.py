@@ -25,7 +25,7 @@ c = conn.cursor()
 # query = "CREATE TABLE login(Name VARCHAR, Username VARCHAR UNIQUE, Password VARCHAR)"
 # conn.execute(query)
 # create new table for orders
-c.execute("CREATE TABLE IF NOT EXISTS orders (date text,cashier text,cust_name text,order_id integer,item_id integer,item_name text,total real)")
+c.execute("CREATE TABLE IF NOT EXISTS item_frequency (date text,name text,qty integer)")
 
 
 

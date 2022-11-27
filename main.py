@@ -2,6 +2,8 @@ import os, time
 import random
 import sqlite3
 from getpass import getpass
+import matplotlib.pyplot as plt
+
 conn = sqlite3.connect('billing_system.db')
 c = conn.cursor()
 
@@ -64,14 +66,14 @@ def show_menu():
 def main_menu():
     while True:
         screen_header()
-        menu_choice = input("""
+        menu_choice = input(f"""
         1. Take Order
         2. Show Menu
-        3. Add Item
+        {'''3. Add Item
         4. Edit Item
         5. Remove Item
         6. Add User
-        7. Remove User
+        7. Remove User''' if logedin_name == 'Admin' else ''}
         8. Logout
                 
             
@@ -81,16 +83,18 @@ def main_menu():
             order_page()
         elif menu_choice == '2':
             show_menu()
-        elif menu_choice == '3':
-            add_item()
-        elif menu_choice == '4':
-            edit_item()
-        elif menu_choice == '5':
-            remove_item()
-        elif menu_choice == '6':
-            add_user()
-        elif menu_choice == '7':
-            remove_user()
+        
+        elif logedin_name == 'Admin':
+            if menu_choice == '3' :
+                add_item()
+            elif menu_choice == '4':
+                edit_item()
+            elif menu_choice == '5':
+                remove_item()
+            elif menu_choice == '6':
+                add_user()
+            elif menu_choice == '7':
+                remove_user()
         elif menu_choice == '8':
             break
         else:
@@ -294,6 +298,9 @@ def order_page():
                         
                         # save order details in database
                         c.execute("INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?, ?)", (order_data[0], logedin_name, customer_name,order_data[1], ', '.join(item_ids), ', '.join(item_names), grand_total))
+                        # save individual item details with qty in item_frequency table
+                        for i in order_details:
+                            c.execute("INSERT INTO item_frequency VALUES (?, ?, ?)", (order_data[1], i, order_details[i]["qty"]))
                         conn.commit()
                         print(f"""
 {'-'*61}
@@ -384,6 +391,162 @@ Enter order id to add items: """)
     return temp_order_details
 
 
+def view_sales():
+    c.execute("SELECT date, total FROM orders")
+    data = c.fetchall()
+    date = [i[0] for i in data]
+    total = [i[1] for i in data]
+    plt.figure(1,figsize=(10, 5))
+    plt.plot(date, total)
+    plt.ylabel('Total')
+    plt.title('Sales Line Graph')
+    plt.xlabel('Date')
+
+def view_item_frequency_pie():
+    c.execute("SELECT name, qty FROM item_frequency")
+    data = c.fetchall()
+    item_ids = [i[0] for i in data]
+    qty = [i[1] for i in data]
+    
+    # add item_ids and qty in a dictionary
+    item_ids_qty = {}
+    for i in range(len(item_ids)):
+        # if item_id is already in the dictionary then add the qty
+        if item_ids[i] in item_ids_qty:
+            item_ids_qty[item_ids[i]] += qty[i]
+        # if item_id is not in the dictionary then add the item_id and qty
+        else:
+            item_ids_qty[item_ids[i]] = qty[i]
+
+    # get the item_ids and qty in two different lists
+    item_ids = list(item_ids_qty.keys())
+    qty = list(item_ids_qty.values())
+    
+    # using item_ids get name from menu table
+    item_names = []
+    for item_id in item_ids:
+        c.execute("SELECT item_name FROM menu WHERE item_id = ?", (item_id,))
+        item_names.append(c.fetchone()[0])
+    
+
+    plt.figure(2,figsize=(10, 5)) 
+    plt.pie(qty, labels=item_names, autopct='%1.1f%%')
+    plt.title('Item Frequency Pie Chart')
+
+
+def view_item_frequency_bar():
+    c.execute("SELECT name, qty FROM item_frequency")
+    data = c.fetchall()
+    item_ids = [i[0] for i in data]
+    qty = [i[1] for i in data]
+    
+    # add item_ids and qty in a dictionary
+    item_ids_qty = {}
+    for i in range(len(item_ids)):
+        # if item_id is already in the dictionary then add the qty
+        if item_ids[i] in item_ids_qty:
+            item_ids_qty[item_ids[i]] += qty[i]
+        # if item_id is not in the dictionary then add the item_id and qty
+        else:
+            item_ids_qty[item_ids[i]] = qty[i]
+
+    # get the item_ids and qty in two different lists
+    item_ids = list(item_ids_qty.keys())
+    qty = list(item_ids_qty.values())
+    
+    # using item_ids get name from menu table
+    item_names = []
+    for item_id in item_ids:
+        c.execute("SELECT item_name FROM menu WHERE item_id = ?", (item_id,))
+        item_names.append(c.fetchone()[0])
+    
+    plt.figure(3,figsize=(10, 5)) 
+    plt.bar(item_names, qty)
+    plt.title('Item Frequency Bar Graph')
+
+def top_5_items_sold_pie_chart():
+    # get the data from the database
+    c.execute("SELECT name, qty FROM item_frequency ORDER BY qty DESC LIMIT 5")
+    # get the data from the database
+    data = c.fetchall()
+    # get name and qty in {name: qty}
+    item_ids = [i[0] for i in data]
+    qty = [i[1] for i in data]
+    
+    # add item_ids and qty in a dictionary
+    item_ids_qty = {}
+    for i in range(len(item_ids)):
+        # if item_id is already in the dictionary then add the qty
+        if item_ids[i] in item_ids_qty:
+            item_ids_qty[item_ids[i]] += qty[i]
+        # if item_id is not in the dictionary then add the item_id and qty
+        else:
+            item_ids_qty[item_ids[i]] = qty[i]
+
+    # get the item_ids and qty in two different lists
+    item_ids = list(item_ids_qty.keys())
+    qty = list(item_ids_qty.values())
+    
+    # using item_ids get name from menu table
+    item_names = []
+    for item_id in item_ids:
+        c.execute("SELECT item_name FROM menu WHERE item_id = ?", (item_id,))
+        item_names.append(c.fetchone()[0])
+    
+    plt.figure(4,figsize=(10, 5)) 
+    plt.pie(qty, labels=item_names, autopct='%1.1f%%')
+    plt.title('Top 5 Items Sold Pie Chart')
+
+def view_analytics():
+    screen_header()
+    print(f"""
+                    Analytics
+          """)
+    print("""
+1. View Sales
+2. View Item Frequency (Pie Chart)
+3. View Item Frequency (Bar Chart)
+4. View Top 5 Items Sold
+7. View All Analytics
+8. Back
+            """)
+    # 5. View Customer Frequency
+    while True:
+        try:
+            choice = int(input("Enter choice: "))
+        except ValueError:
+            print(f"""
+    Invalid choice
+    """)
+            
+        if choice == 1:
+            view_sales()
+            plt.show()
+        elif choice == 2:
+            view_item_frequency_pie()
+            plt.show()
+        elif choice == 3:
+            view_item_frequency_bar()
+            plt.show()
+        elif choice == 4:
+            top_5_items_sold_pie_chart()
+            plt.show()
+        elif choice == 7:
+            view_sales()
+            view_item_frequency_pie()
+            view_item_frequency_bar()
+            top_5_items_sold_pie_chart()
+            plt.show()
+        elif choice == 8:
+            return
+        else:
+            print("""
+Invalid choice""")
+            time.sleep(1)
+            continue     
+
+    
+
 
 while True:
     screen_header()
@@ -411,9 +574,8 @@ while True:
     elif welcome_screen_cmd == "2":
         show_menu()
     elif welcome_screen_cmd == "3":
-        # view_analytics()
-        print("Viewing Analytics...")
-        pass
+        view_analytics()
+        
     elif welcome_screen_cmd == "4":
         # exit the program
         print("Exiting...")
