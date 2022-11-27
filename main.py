@@ -28,20 +28,17 @@ def login():
     global logedin_name
     screen_header()
     username = input("""Username: """)
-    if username != "":    
-        password = getpass("""Password: """)
-        query = 'SELECT * FROM login WHERE Username = ? AND Password = ?'
-        c.execute(query, (username, password))
-        result = c.fetchone()
-        conn.commit()
-        if result != None:
-            logedin_name = result[0]
-            return result
-        else:
-            return False
+    password = getpass("""Password: """)
+    query = 'SELECT * FROM login WHERE Username = ? AND Password = ?'
+    c.execute(query, (username, password))
+    result = c.fetchone()
+    conn.commit()
+    if result != None:
+        logedin_name = result[0]
+        return result
     else:
-        logedin_name = "Sohel Shekh"
-        return True
+        return False
+
 
 def show_menu():
     screen_header()
@@ -247,12 +244,19 @@ Press enter to continue""")
 
 def order_page():
     global customer_name, order_details, order_data
-    screen_header()
-    print(f"""
-                    Tax Invoice   
-          """)
-    customer_name = input("""
-        Customer Name: """)
+    while True:
+        screen_header()
+        print(f"""
+                        Tax Invoice   
+            """)
+        
+        customer_name = input("""
+            Customer Name: """)
+        # if customer name is not empty
+        if customer_name != "":
+            break
+        else:
+            continue
     while True:
         invoice_header()
         order_details = take_order()
