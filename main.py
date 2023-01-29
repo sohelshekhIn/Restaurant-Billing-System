@@ -28,7 +28,10 @@ def login():
     global logedin_name
     screen_header()
     username = input("""Username: """)
-    password = getpass("""Password: """)
+    try:
+        password = getpass("""Password: """)
+    except Exception as error:
+        pass
     query = 'SELECT * FROM login WHERE Username = ? AND Password = ?'
     c.execute(query, (username, password))
     result = c.fetchone()
@@ -66,12 +69,17 @@ def main_menu():
         menu_choice = input(f"""
         1. Take Order
         2. Show Menu
+        
         {'''3. Add Item
         4. Edit Item
         5. Remove Item
+        
         6. Add User
-        7. Remove User''' if logedin_name == 'Admin' else ''}
-        8. Logout
+        7. View Users
+        8. Remove User''' if logedin_name == 'Admin' else ''}
+        
+        9. Logout
+        0. Exit
                 
             
         Enter your choice: """)
@@ -80,6 +88,11 @@ def main_menu():
             order_page()
         elif menu_choice == '2':
             show_menu()
+        
+        elif menu_choice == '9':
+            return "logout"
+        elif menu_choice == '0':
+            return "exit"
         
         elif logedin_name == 'Admin':
             if menu_choice == '3' :
@@ -91,9 +104,9 @@ def main_menu():
             elif menu_choice == '6':
                 add_user()
             elif menu_choice == '7':
+                view_users()
+            elif menu_choice == '8':
                 remove_user()
-        elif menu_choice == '8':
-            break
         else:
             print("Invalid choice")
             time.sleep(1)
@@ -144,6 +157,20 @@ def edit_item():
                     print("Item updated successfully")
                     time.sleep(1)
                     break
+                elif new_item_name == "" and new_item_price != "":
+                    # update item in database
+                    c.execute("UPDATE menu SET item_price = ? WHERE item_id = ?", (new_item_price, item_id))
+                    conn.commit()
+                    print("Item updated successfully")
+                    time.sleep(1)
+                    break
+                elif new_item_name != "" and new_item_price == "":
+                    # update item in database
+                    c.execute("UPDATE menu SET item_name = ? WHERE item_id = ?", (new_item_name, item_id))
+                    conn.commit()
+                    print("Item updated successfully")
+                    time.sleep(1)
+                    break
                 else:
                     break
             else:
@@ -189,6 +216,21 @@ def add_user():
         conn.commit()
         print("\tUser added successfully")
         time.sleep(1)
+
+# function to view users
+def view_users():
+    # show all users in database
+    screen_header()
+    print("\t\tView Users", end='\n'*2)
+    c.execute("SELECT * FROM login")
+    users = c.fetchall()
+    for user in users:
+        print(f"""
+            Name: {user[0]}
+            Username: {user[1]}
+            """)
+    input("Press enter to continue")
+    time.sleep(1)
 
 def remove_user():
     # ask for username and remove user from database
@@ -318,11 +360,11 @@ Press enter to continue""")
                         break
                     else:
                         print("""
-Insufficient amount""")
+                        Insufficient amount""")
                         time.sleep(1)
                         continue
                 else:
-                    break
+                    continue
             break
         else:
             continue
@@ -430,7 +472,12 @@ def view_item_frequency_pie():
     item_names = []
     for item_id in item_ids:
         c.execute("SELECT item_name FROM menu WHERE item_id = ?", (item_id,))
-        item_names.append(c.fetchone()[0])
+        result = c.fetchone()
+        if result != None:
+            result = result[0]
+        else:
+            result = "Item Deleted"
+        item_names.append(result)
     
 
     plt.figure(2,figsize=(10, 5)) 
@@ -462,8 +509,13 @@ def view_item_frequency_bar():
     item_names = []
     for item_id in item_ids:
         c.execute("SELECT item_name FROM menu WHERE item_id = ?", (item_id,))
-        item_names.append(c.fetchone()[0])
-    
+        result = c.fetchone()
+        if result != None:
+            result = result[0]
+        else:
+            result = "Item Deleted"
+        item_names.append(result)
+        
     plt.figure(3,figsize=(10, 5)) 
     plt.bar(item_names, qty)
     plt.title('Item Frequency Bar Graph')
@@ -495,7 +547,12 @@ def top_5_items_sold_pie_chart():
     item_names = []
     for item_id in item_ids:
         c.execute("SELECT item_name FROM menu WHERE item_id = ?", (item_id,))
-        item_names.append(c.fetchone()[0])
+        result = c.fetchone()
+        if result != None:
+            result = result[0]
+        else:
+            result = "Item Deleted"
+        item_names.append(result)
     
     plt.figure(4,figsize=(10, 5)) 
     plt.pie(qty, labels=item_names, autopct='%1.1f%%')
@@ -551,41 +608,49 @@ Invalid choice""")
 
     
 
+try:
+    while True:
+        screen_header()
+        welcome_screen_cmd = input(f"""
+        1. Login
+        2. View Menu
+        3. View Analytics
+        4. Exit
 
-while True:
-    screen_header()
-    welcome_screen_cmd = input(f"""
-    1. Login
-    2. View Menu
-    3. View Analytics
-    4. Exit
+        Enter command: """)
 
-    Enter command: """)
-
-    if welcome_screen_cmd == "1":    
-        while True:
-            if login() == False:
-                print("""
-    Invalid username or password""")
+        if welcome_screen_cmd == "1":    
+            while True:
+                if login() == False:
+                    print("""
+        Invalid username or password""")
+                    time.sleep(1)
+                else:
+                    break
+            print("""
+                    Loged in successfully""")
+            time.sleep(1)
+            response = main_menu()
+            if response == "logout":
+                continue
+            elif response == "exit":
+                print("Exiting...")
                 time.sleep(1)
-            else:
-                break
-        print("""
-                Loged in successfully""")
-        time.sleep(1)
-        main_menu()
-        break
-    elif welcome_screen_cmd == "2":
-        show_menu()
-    elif welcome_screen_cmd == "3":
-        view_analytics()
-        
-    elif welcome_screen_cmd == "4":
-        # exit the program
-        print("Exiting...")
-        time.sleep(1)
-        os._exit(0)
-    else:
-        pass
-    
+                os._exit(0)
+        elif welcome_screen_cmd == "2":
+            show_menu()
+        elif welcome_screen_cmd == "3":
+            view_analytics()
+            
+        elif welcome_screen_cmd == "4":
+            # exit the program
+            print("Exiting...")
+            time.sleep(1)
+            os._exit(0)
+        else:
+            pass
+except KeyboardInterrupt:
+    print("Exiting...")
+    time.sleep(1)
+    os._exit(0) 
     
